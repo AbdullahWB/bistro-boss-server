@@ -25,23 +25,32 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-      await client.connect();
-      
-
-      const menuCollection = client.db("bistroBD").collection("menu");
-      const reviewCollection = client.db("bistroBD").collection("reviews");
+    await client.connect();
 
 
+    const menuCollection = client.db("bistroBD").collection("menu");
+    const reviewCollection = client.db("bistroBD").collection("reviews");
+    const cardsCollection = client.db("bistroBD").collection("cards");
 
-      app.get('/menu', async (req, res) => { 
-          const result = await menuCollection.find().toArray();
-          res.send(result);
-      })
 
-      app.get('/review', async (req, res) => { 
-          const result = await reviewCollection.find().toArray();
-          res.send(result);
-      })
+
+    app.get('/menu', async (req, res) => {
+      const result = await menuCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.get('/review', async (req, res) => {
+      const result = await reviewCollection.find().toArray();
+      res.send(result);
+    })
+
+    // cart collection
+    app.post('/carts', async (req, res) => { 
+      const item = req.body;
+      console.log(item);
+      const result = await cardsCollection.insertOne(item);
+      res.send(result);
+    })
 
 
 
@@ -57,10 +66,10 @@ run().catch(console.dir);
 
 
 
-app.get('/', (req, res) => { 
-    res.send('boss is running')
+app.get('/', (req, res) => {
+  res.send('boss is running')
 })
 
 app.listen(port, () => {
-    console.log(`Bistro boss running on ${port}`);
+  console.log(`Bistro boss running on ${port}`);
 })
