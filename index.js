@@ -28,10 +28,31 @@ async function run() {
     await client.connect();
 
 
+
+    const userCollections = client.db("bistroBD").collection("user");
     const menuCollection = client.db("bistroBD").collection("menu");
     const reviewCollection = client.db("bistroBD").collection("reviews");
     const cardsCollection = client.db("bistroBD").collection("cards");
 
+    // user collection
+
+    app.get('/user', async (req, res) => {
+      const result = await userCollections.find().toArray();
+      res.send(result);
+    })
+
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const query = { email: user.email }
+      const existingUser = await userCollections.findOne(query);
+      console.log("existing user: " + existingUser);
+      if (existingUser) {
+        return res.send({message: 'user already exists'})
+      }
+      const result = await userCollections.insertOne(user)
+      res.send(result)
+    })
 
 
     app.get('/menu', async (req, res) => {
@@ -59,7 +80,7 @@ async function run() {
 
     app.post('/carts', async (req, res) => { 
       const item = req.body;
-      console.log(item);
+      // console.log(item);
       const result = await cardsCollection.insertOne(item);
       res.send(result);
     })
