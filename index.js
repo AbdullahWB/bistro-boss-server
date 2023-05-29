@@ -9,6 +9,22 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+const verityJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).send({error: true, message: 'unauthorized access'});
+  }
+  const token = authorization.split(' ')[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({error: true, message:'unauthorized access'});
+    }
+    req.decoded = decoded;
+    next();
+  })
+}
+
 
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -85,11 +101,19 @@ async function run() {
 
     // cart collection
 
-    app.get('/carts', async (req, res) => { 
+    app.get('/carts', verityJWT, async (req, res) => { 
       const email = req.query.email;
       if (!email) {
         res.send([]);
       }
+
+
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res.status(403).send({error: true, message: 'provider access'})
+      }
+
+
       const query = { email: email };
       const result = await cardsCollection.find(query).toArray();
       res.send(result);
