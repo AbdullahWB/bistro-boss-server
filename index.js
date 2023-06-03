@@ -13,13 +13,13 @@ app.use(express.json());
 const verityJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
   if (!authorization) {
-    return res.status(401).send({error: true, message: 'unauthorized access'});
+    return res.status(401).send({ error: true, message: 'unauthorized access' });
   }
   const token = authorization.split(' ')[1];
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
-      return res.status(401).send({error: true, message:'unauthorized access'});
+      return res.status(401).send({ error: true, message: 'unauthorized access' });
     }
     req.decoded = decoded;
     next();
@@ -38,7 +38,7 @@ const client = new MongoClient(uri, {
     strict: true,
     deprecationErrors: true,
   }
-}); 
+});
 
 async function run() {
   try {
@@ -52,19 +52,19 @@ async function run() {
     const reviewCollection = client.db("bistroBD").collection("reviews");
     const cardsCollection = client.db("bistroBD").collection("cards");
 
-    app.post('/jwt', (req, res) => { 
+    app.post('/jwt', (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
-      res.send({token})
+      res.send({ token })
     })
-    
+
     // warning: use verifyJWT before  using verifyAdmin
-    const verifyAdmin = async (req, res, next) => { 
+    const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
       const query = { email: email }
       const user = await userCollections.findOne(query);
       if (user?.role !== 'admin') {
-        return res.status(403).send({error: true, message: 'forbidden message'});
+        return res.status(403).send({ error: true, message: 'forbidden message' });
       }
       next();
     }
@@ -75,7 +75,7 @@ async function run() {
       const result = await userCollections.find().toArray();
       res.send(result);
     })
-    
+
     // security layer
     // app.get('/users/admin/:email', async (req, res) => { 
     //   const email = req.params.email;
@@ -89,7 +89,7 @@ async function run() {
     //   const result = { admin: user?.role === 'admin' }
     //   res.send(result);
     // })
-    
+
     app.get('/users/admin/:email', verityJWT, async (req, res) => {
       const email = req.params.email;
 
@@ -110,13 +110,13 @@ async function run() {
       const existingUser = await userCollections.findOne(query);
       console.log("existing user: " + existingUser);
       if (existingUser) {
-        return res.send({message: 'user already exists'})
+        return res.send({ message: 'user already exists' })
       }
       const result = await userCollections.insertOne(user)
       res.send(result)
     })
 
-    app.patch('/users/admin/:id', async (req, res) => { 
+    app.patch('/users/admin/:id', async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -133,13 +133,13 @@ async function run() {
       res.send(result);
     })
 
-    app.post('/menu', verityJWT, verifyAdmin, async (req, res) => { 
+    app.post('/menu', verityJWT, verifyAdmin, async (req, res) => {
       const newItem = req.body;
       const result = await menuCollection.insertOne(newItem)
       res.send(result)
     })
 
-    app.delete('/menu/:id', verityJWT, verifyAdmin, async (req, res) => { 
+    app.delete('/menu/:id', verityJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await menuCollection.deleteOne(query);
@@ -153,7 +153,7 @@ async function run() {
 
     // cart collection
 
-    app.get('/carts', verityJWT, async (req, res) => { 
+    app.get('/carts', verityJWT, async (req, res) => {
       const email = req.query.email;
       if (!email) {
         res.send([]);
@@ -162,7 +162,7 @@ async function run() {
 
       const decodedEmail = req.decoded.email;
       if (email !== decodedEmail) {
-        return res.status(403).send({error: true, message: 'forbidden access'})
+        return res.status(403).send({ error: true, message: 'forbidden access' })
       }
 
 
@@ -172,28 +172,29 @@ async function run() {
     })
 
 
-    app.post('/carts', async (req, res) => { 
+    app.post('/carts', async (req, res) => {
       const item = req.body;
       // console.log(item);
       const result = await cardsCollection.insertOne(item);
       res.send(result);
     })
 
-    app.delete('/carts/:id', async (req, res) => { 
+    app.delete('/carts/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await cardsCollection.deleteOne(query);
       res.send(result);
     })
 
-    app.post('/create-payment-intent', async (req, res) => { 
+    app.post('/create-payment-intent', verityJWT, async (req, res) => {
       const { price } = req.body;
-      const amount = price * 100;
-      const paymentIntent = await stripe.paymentIntent.create({
+      const amount = parseInt(price * 100);
+      // console.log(price);
+      const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
-        currency: 'USD',
+        currency: 'usd',
         payment_method_types: ['card']
-      })
+      });
       res.send({
         clientSecret: paymentIntent.client_secret,
       })
