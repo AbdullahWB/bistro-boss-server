@@ -222,6 +222,25 @@ async function run() {
       }
     });
 
+    app.get('/admin-stats', verityJWT, verifyAdmin, async (req, res) => {
+      const users = await userCollections.estimatedDocumentCount()
+      const products = await menuCollection.estimatedDocumentCount()
+      const orders = await paymentCollection.estimatedDocumentCount()
+
+      // best way to get sum
+
+
+      const payment = await paymentCollection.find().toArray();
+      const revenue = payment.reduce((sum, payment)=> sum + payment.price, 0)
+
+      res.send({
+        revenue,
+        users,
+        products,
+        orders,
+      })
+    })
+
 
 
     // Send a ping to confirm a successful connection
