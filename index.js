@@ -223,22 +223,56 @@ async function run() {
     });
 
     app.get('/admin-stats', verityJWT, verifyAdmin, async (req, res) => {
-      const users = await userCollections.estimatedDocumentCount()
-      const products = await menuCollection.estimatedDocumentCount()
-      const orders = await paymentCollection.estimatedDocumentCount()
-
-      // best way to get sum
-
+      const users = await userCollections.estimatedDocumentCount();
+      const products = await menuCollection.estimatedDocumentCount();
+      const orders = await paymentCollection.estimatedDocumentCount();
 
       const payment = await paymentCollection.find().toArray();
-      const revenue = payment.reduce((sum, payment)=> sum + payment.price, 0)
+      const revenue = payment.reduce((sum, payment) => sum + payment.price, 0).toFixed(2);
 
       res.send({
         revenue,
         users,
         products,
         orders,
-      })
+      });
+    });
+
+
+
+    app.get('/order-stats', verityJWT, verifyAdmin, async (req, res) => {
+      const pipeline = [
+        {
+          $lookup: {
+            from: 'menu',
+            localField: 'menuItems',
+            foreignField: '_id',
+            as: 'menuItemsData'
+          }
+        },
+        {
+          $unwind: '$menuItemsData'
+        },
+        {
+          $group: {
+            _id: '$menuItemsData.category',
+            count: { $sum: 1 },
+            total: { $sum: '$menuItemsData.price' }
+          }
+        },
+        {
+          $project: {
+            category: '$_id',
+            count: 1,
+            total: { $round: ['$total', 2] },
+            _id: 0
+          }
+        }
+      ];
+
+      const result = await paymentCollection.aggregate(pipeline).toArray()
+      res.send(result)
+
     })
 
 
