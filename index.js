@@ -51,6 +51,10 @@ async function run() {
     const menuCollection = client.db("bistroBD").collection("menu");
     const reviewCollection = client.db("bistroBD").collection("reviews");
     const cardsCollection = client.db("bistroBD").collection("cards");
+    const paymentCollection = client.db("bistroBD").collection("payment");
+
+
+
 
     app.post('/jwt', (req, res) => {
       const user = req.body;
@@ -105,10 +109,10 @@ async function run() {
 
     app.post('/users', async (req, res) => {
       const user = req.body;
-      console.log(user);
+      // console.log(user);
       const query = { email: user.email }
       const existingUser = await userCollections.findOne(query);
-      console.log("existing user: " + existingUser);
+      // console.log("existing user: " + existingUser);
       if (existingUser) {
         return res.send({ message: 'user already exists' })
       }
@@ -199,6 +203,24 @@ async function run() {
         clientSecret: paymentIntent.client_secret,
       })
     })
+
+
+    // payment
+
+    app.post('/payments', async (req, res) => {
+      try {
+        const payment = req.body;
+        const insertResult = await paymentCollection.insertOne(payment);
+        const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } };
+        const deleteResult = await cardsCollection.deleteMany(query);
+
+        res.send({ insertResult, deleteResult });
+      } catch (error) {
+        // Handle the error appropriately
+        console.error('An error occurred:', error);
+        res.status(500).send('Internal Server Error');
+      }
+    });
 
 
 
